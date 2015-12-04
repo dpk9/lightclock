@@ -16,31 +16,77 @@ import ephem
 import math
 import ntplib
 import time
+import pytz
 
-from geopy.geocoders import Nominatim
+from geopy.geocoders import GoogleV3  # for finding coords of place names
 
-YES_LIST = ["y", "ye", "yes"]
+YES_LIST = ["", "y", "ye", "yes"]
 NO_LIST = ["n", "no"]
 
 
 def main(address, coords=None, time_var=None, date=None):
     try:
-        if address:
-            address = str(address)
-            print(address)
-        if coords:
-            lat, lon = coords
-            lat = int(lat)
-            lon = int(lon)
-            print("{}, {}".format(lat, lon))
+        # process the location to coords, get timezone name
+        coords, tz = setLocation(city=address, lat_lon=coords)
+        print("coords = {}\ntz = {}".format(coords, tz))
+
+        # default to localtime
+        time_and_date = list(time.localtime())
+        # insert given time if given
         if time_var:
-            time_var = time.strptime(time_var, "%H:%M:%S")
-            print(time_var)
+            time_var = list(time.strptime(time_var, "%H:%M"))
+
+            # hour = index 3, minute = index 4
+            for i in [3, 4]:
+                time_and_date[i] = time_var[i]
+        # insert given date if given
         if date:
-            date = time.strptime(date, "%d/%m/%Y")
-            print(date)
+            date = list(time.strptime(date, "%m/%d/%Y"))
+            # [yr, mon, day, SKIP, SKIP, SKIP, wday, yday, dst]
+            for i in [0, 1, 2, 6, 7, 8]:
+                time_and_date[i] = date[i]
+
+        tad = time_and_date
+        tad = datetime.datetime(tad[0], tad[1], tad[2], tad[3], tad[4], tad[5])
+        # convert the time_and_date from localized timezone time to UTC time
+        utc_tad = localToUtc(tad, tz)
+        print "utc_tad {}".format(utc_tad)
+
+        # Make an observer object for ephem at given location and date/time
+        observer = ephem.Observer()
+        observer.lat, observer.lon = str(coords[0]), str(coords[1])
+        observer.date = utc_tad.strftime("%Y/%m/%d %H:%M:%S")
+        print observer
+
+        # Make a sun object and connect it to the observer
+        sun = ephem.Sun()
+        sun.compute(observer)
+
+        next_sunrise = str(observer.next_rising(sun))
+        next_sunrise_utc = datetime.datetime.strptime(next_sunrise,
+                                                      "%Y/%m/%d %H:%M:%S")
+        print type(next_sunrise_utc)
     except:
         raise
+
+
+def localToUtc(local_tad, tz):
+    """
+    Convert a locally timezoned datetime.datetime to UTC datetime.datetime
+    """
+    local = pytz.timezone(tz)
+    local_tad = local.localize(local_tad)
+    utc_tad = local_tad.astimezone(pytz.utc)
+    return utc_tad
+
+
+def utcToLocal(utc_tad, tz):
+    """
+    convert a UTC datetime.datetime to a locally timezoned datetime.datetime
+    """
+    local = pytz.timezone(tz)
+    local_tad = utc_tad.replace(tzinfo=pytz.utc).astimezone(local)
+    return local_tz.normalize(local)
 
 
 def setLocation(city=None, lat_lon=None):
@@ -50,6 +96,7 @@ def setLocation(city=None, lat_lon=None):
         raise ValueError("Bad location.  Expect either `city` OR "
                          "[`lat`, `lon`]")
     # if not a city name, make sure lat_lon is valid
+    geolocator = GoogleV3(timeout=10)
     if not city:
         lat_lon_err = False
         # Make sure lat_lon is list/tuple
@@ -71,7 +118,6 @@ def setLocation(city=None, lat_lon=None):
                              "".format(lat, lon))
     # if it's a city, get the lat/lon
     else:
-        geolocator = Nominatim()
         city_long, lat_lon = geolocator.geocode(city)
         while True:
             # Ask if we have interpreted the correct city
@@ -84,17 +130,9 @@ def setLocation(city=None, lat_lon=None):
                 raise ValueError("Try again with a more specific city name.")
             else:
                 print("Invalid confirmation '{}'".format(confirm_city))
+    tz = str(geolocator.timezone((lat, lon)))
 
-    print("lat = {}, lon = {}.".format(lat, lon))
-    return [lat, lon]
-
-
-def parseTime(time_var):
-    pass
-
-
-def parseDate(date):
-    pass
+    return [lat, lon], tz
 
 
 if __name__ == "__main__":
@@ -115,12 +153,12 @@ if __name__ == "__main__":
                                 action="store",
                                 nargs=2,
                                 metavar=("LAT", "LON"),
-                                type=int)
+                                type=float)
 
     # Time and date are both optional. If only one is given, use current for
     # other.
     parser.add_argument("-t", "--time",
-                        help='Set time. Format is "HH:MM:SS". Default to \
+                        help='Set time. Format is 24-hr "HH:MM". Default to \
                             current time.',
                         action="store")
     parser.add_argument("-d", "--date",
@@ -137,5 +175,7 @@ if __name__ == "__main__":
     date = args.date
 
     print args
+
+
 
     main(address=address, coords=coords, time_var=time_var, date=date)

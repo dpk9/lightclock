@@ -14,18 +14,26 @@ off. At the end of evening twilight, turn off fully overnight.
 import datetime
 import ephem
 import math
-import ntplib
 import time
 import pytz
+
+import RPi.GPIO as GPIO
 
 from geopy.geocoders import GoogleV3  # for finding coords of place names
 
 YES_LIST = ["", "y", "ye", "yes"]
 NO_LIST = ["n", "no"]
 
+TIMER = 60.0
+TWILIGHT_ALT = -18  # astronomical twilight
+# TWILIGHT_ALT = -12  # nautical twilight
+# TWILIGHT_ALT = -6   # civil twilight
+
+
 
 def main(address, coords=None, time_var=None, date=None):
     try:
+        initRaspPi()
         # process the location to coords, get timezone name
         coords, tz = setLocation(city=address, lat_lon=coords)
         print("coords = {}\ntz = {}".format(coords, tz))
@@ -46,28 +54,99 @@ def main(address, coords=None, time_var=None, date=None):
             for i in [0, 1, 2, 6, 7, 8]:
                 time_and_date[i] = date[i]
 
-        tad = time_and_date
-        tad = datetime.datetime(tad[0], tad[1], tad[2], tad[3], tad[4], tad[5])
-        # convert the time_and_date from localized timezone time to UTC time
-        utc_tad = localToUtc(tad, tz)
-        print "utc_tad {}".format(utc_tad)
+        start_tad = time_and_date
+        # get the offset from target time to current time
+        tad_offset = time.time() - time.mktime(start_tad)
+        print "time diff {}".format(tad_offset)
 
         # Make an observer object for ephem at given location and date/time
         observer = ephem.Observer()
         observer.lat, observer.lon = str(coords[0]), str(coords[1])
-        observer.date = utc_tad.strftime("%Y/%m/%d %H:%M:%S")
-        print observer
-
-        # Make a sun object and connect it to the observer
+        # make a sun object
         sun = ephem.Sun()
-        sun.compute(observer)
 
-        next_sunrise = str(observer.next_rising(sun))
-        next_sunrise_utc = datetime.datetime.strptime(next_sunrise,
-                                                      "%Y/%m/%d %H:%M:%S")
-        print type(next_sunrise_utc)
+        # prev_alt init so it has something to start with
+        prev_altitude = 900
+
+        # Loop every minute (or TIMER seconds if TIMER != 60)
+        while True:
+            # for the timer
+            tick = time.time()
+            print "tick {}".format(tick)
+
+            # calc the new time and date
+            tad = list(time.localtime(time.time() - tad_offset))
+            tad = datetime.datetime(tad[0], tad[1], tad[2], tad[3], tad[4], tad[5])
+            # convert the time_and_date from localized timezone time to UTC time
+            utc_tad = localToUtc(tad, tz)
+            print "utc_tad {}".format(utc_tad)
+
+            # update the observer's tad
+            observer.date = utc_tad.strftime("%Y/%m/%d %H:%M:%S")
+            print observer
+
+            # observe the sun
+            sun.compute(observer)
+
+            # calculate sun altitude in degrees
+            altitude = int(math.degrees(sun.alt))
+            print "altitude {}".format(altitude)
+
+            # sunlight adjustment time!
+            # see if light is above the horizon (full daylight)
+            if altitude >= 0:
+                # light will be on fully, just make it 1
+                altitude = 0
+            # see if light is below twilight altitude (full night)
+            elif altitude < TWILIGHT_ALT:
+                # light will be off fully, just make it twilight - 1
+                altitude = TWILIGHT_ALT - 1
+            # don't need to check for light inside the twilight range because it
+            # that will be caught in the altitude-change check in the next step
+
+            # look for a 1 degree change in altitude
+            if abs(altitude - prev_altitude) > 0:
+                lightControl(altitude)
+
+            # update the prev_altitude
+            prev_altitude = altitude
+
+            # calculate the next sunrise
+            next_sunrise_utc = str(observer.next_rising(sun))
+            next_sunrise_utc = datetime.datetime.strptime(next_sunrise_utc,
+                                                          "%Y/%m/%d %H:%M:%S")
+            next_sunrise_local  = utcToLocal(next_sunrise_utc, tz)
+
+            # calculate the next sunset
+            next_sunset_utc = str(observer.next_setting(sun))
+            next_sunset_utc = datetime.datetime.strptime(next_sunset_utc,
+                                                          "%Y/%m/%d %H:%M:%S")
+            next_sunset_local = utcToLocal(next_sunset_utc, tz)
+
+            # # find out if sunset or sunrise is sooner
+            # if next_sunrise_local < next_sunset_local:
+            #     # next event is sunrise
+            #     print "sunrise next"
+            #     print next_sunrise_utc
+
+            # else:
+            #     # next event is sunset
+            #     print "sunset next"
+            #     print next_sunset_utc
+
+            # sleep the rest of the 60 seconds
+            time.sleep(TIMER - ((time.time() - tick) % TIMER))
+
     except:
         raise
+
+
+def initRaspPi():
+    pass
+
+
+def lightControl(altitude):
+    pass
 
 
 def localToUtc(local_tad, tz):
@@ -86,7 +165,7 @@ def utcToLocal(utc_tad, tz):
     """
     local = pytz.timezone(tz)
     local_tad = utc_tad.replace(tzinfo=pytz.utc).astimezone(local)
-    return local_tz.normalize(local)
+    return local.normalize(local_tad)
 
 
 def setLocation(city=None, lat_lon=None):

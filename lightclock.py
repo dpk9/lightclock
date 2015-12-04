@@ -19,10 +19,11 @@ import pytz
 
 import RPi.GPIO as GPIO
 
-from geopy.geocoders import GoogleV3  # for finding coords of place names
+from geopy.geocoders import GoogleV3
 
 YES_LIST = ["", "y", "ye", "yes"]
 NO_LIST = ["n", "no"]
+
 
 TIMER = 60.0
 TWILIGHT_ALT = -18  # astronomical twilight
@@ -32,8 +33,15 @@ TWILIGHT_ALT = -18  # astronomical twilight
 
 
 def main(address, coords=None, time_var=None, date=None):
+    """
+    Using an address or coordinates, and optionally a starting time and/or a
+    starting date, simulate the sunlight patterns of anyplace in the world.
+    Refreshes every minute (or value of TIMER), dimming the light on/off during
+    twilight hours (when the sun is 18, 12, or 6 degrees below horizon for
+    astronomical, nautical, or civil twilight, respectively)
+    """
     try:
-        initRaspPi()
+        PWM_pin = initRaspPi()
         # process the location to coords, get timezone name
         coords, tz = setLocation(city=address, lat_lon=coords)
         print("coords = {}\ntz = {}".format(coords, tz))
@@ -95,33 +103,33 @@ def main(address, coords=None, time_var=None, date=None):
             # sunlight adjustment time!
             # see if light is above the horizon (full daylight)
             if altitude >= 0:
-                # light will be on fully, just make it 1
+                # light will be on fully, just make it 0
                 altitude = 0
             # see if light is below twilight altitude (full night)
             elif altitude < TWILIGHT_ALT:
-                # light will be off fully, just make it twilight - 1
-                altitude = TWILIGHT_ALT - 1
+                # light will be off fully, just make it twilight
+                altitude = TWILIGHT_ALT
             # don't need to check for light inside the twilight range because it
             # that will be caught in the altitude-change check in the next step
 
             # look for a 1 degree change in altitude
             if abs(altitude - prev_altitude) > 0:
-                lightControl(altitude)
+                lightControl(PWM_pin, altitude)
 
             # update the prev_altitude
             prev_altitude = altitude
 
-            # calculate the next sunrise
-            next_sunrise_utc = str(observer.next_rising(sun))
-            next_sunrise_utc = datetime.datetime.strptime(next_sunrise_utc,
-                                                          "%Y/%m/%d %H:%M:%S")
-            next_sunrise_local  = utcToLocal(next_sunrise_utc, tz)
+            # # calculate the next sunrise
+            # next_sunrise_utc = str(observer.next_rising(sun))
+            # next_sunrise_utc = datetime.datetime.strptime(next_sunrise_utc,
+            #                                               "%Y/%m/%d %H:%M:%S")
+            # next_sunrise_local  = utcToLocal(next_sunrise_utc, tz)
 
-            # calculate the next sunset
-            next_sunset_utc = str(observer.next_setting(sun))
-            next_sunset_utc = datetime.datetime.strptime(next_sunset_utc,
-                                                          "%Y/%m/%d %H:%M:%S")
-            next_sunset_local = utcToLocal(next_sunset_utc, tz)
+            # # calculate the next sunset
+            # next_sunset_utc = str(observer.next_setting(sun))
+            # next_sunset_utc = datetime.datetime.strptime(next_sunset_utc,
+            #                                               "%Y/%m/%d %H:%M:%S")
+            # next_sunset_local = utcToLocal(next_sunset_utc, tz)
 
             # # find out if sunset or sunrise is sooner
             # if next_sunrise_local < next_sunset_local:
@@ -137,16 +145,40 @@ def main(address, coords=None, time_var=None, date=None):
             # sleep the rest of the 60 seconds
             time.sleep(TIMER - ((time.time() - tick) % TIMER))
 
+    except KeyboardInterrupt:
+        print("KeyboardInterrupt")
+        pin.stop()
+        GPIO.cleanup()
+
     except:
         raise
 
 
 def initRaspPi():
-    pass
+    """
+    Initialize the Raspberry Pi GPIO for PWM
+    """
+    GPIO.setmode(GPIO.BOARD)
+    # pin 21 is output pin
+    GPIO.setup(21, GPIO.OUT)
+    # initialize PWM duty cycle to 0 to start
+    pin = GPIO.PWM(21, 0)
+    # start the PWM
+    pin.start(0)
+    return pin
 
 
-def lightControl(altitude):
-    pass
+def lightControl(pin, altitude):
+    """
+    Change the duty cycle of the PWM pin
+    """
+    # calc the duty cycle %
+    duty_cycle = int(100 * (abs(float(TWILIGHT_ALT) - float(altitude))
+                            / float(TWILIGHT_ALT)))
+
+    # set the duty cycle
+    pin.ChangeDutyCycle(duty_cycle)
+    return
 
 
 def localToUtc(local_tad, tz):
@@ -169,6 +201,10 @@ def utcToLocal(utc_tad, tz):
 
 
 def setLocation(city=None, lat_lon=None):
+    """
+    Turn the given city into a lat/lon, or verify the given lat/lon.
+    Find the timezone of the location.
+    """
     # make sure it's a valid location
     # either give a city or a lat/lon
     if city and lat_lon:
@@ -255,6 +291,5 @@ if __name__ == "__main__":
 
     print args
 
-
-
     main(address=address, coords=coords, time_var=time_var, date=date)
+# end if __name__ == "__main__"

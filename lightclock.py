@@ -124,7 +124,7 @@ def main(address, coords=None, time_var=None, date=None):
 
     except KeyboardInterrupt:
         print("KeyboardInterrupt")
-        pin.stop()
+        PWM_pin.stop()
         GPIO.cleanup()
 
     except:
@@ -139,7 +139,7 @@ def initRaspPi():
     # pin 21 is output pin
     GPIO.setup(21, GPIO.OUT)
     # initialize PWM duty cycle to 0 to start
-    pin = GPIO.PWM(21, 0)
+    pin = GPIO.PWM(21, 0.01)
     # start the PWM
     pin.start(0)
     return pin
@@ -150,8 +150,15 @@ def lightControl(pin, altitude):
     Change the duty cycle of the PWM pin
     """
     # calc the duty cycle %
-    duty_cycle = int(100 * (abs(float(TWILIGHT_ALT) - float(altitude))
-                            / float(TWILIGHT_ALT)))
+    duty_cycle = int(abs(100 * (abs(float(TWILIGHT_ALT) - float(altitude))
+                                / float(TWILIGHT_ALT))))
+
+    if duty_cycle == 0:
+        duty_cycle = 0.01
+    elif duty_cycle == 100:
+        duty_cycle = 99.9
+
+    print "duty_cycle = {}".format(duty_cycle)
 
     # set the duty cycle
     pin.ChangeDutyCycle(duty_cycle)

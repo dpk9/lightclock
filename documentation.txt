@@ -6,6 +6,21 @@ documentation
 The Python program lightclock.py controls a Raspberry Pi's GPIO to control an
 LED light strip to simulate the sunlight patterns of anywhere in the world.
 
+Installation:
+
+Set up and use a virtualenv if desired.  This program was written for Python 2.7
+There are a number of required python modules.  Get them all by entering the
+program's directory and running:
+pip install -r requirements.txt
+
+
+Flag help:
+
+python lightclock.py -h
+or
+python lightclock.py --help
+
+
 Usage:
 
 python lightclock.py (-a address "STRING" | -c coords INT INT) [-t time HH:MM]

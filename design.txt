@@ -3,6 +3,13 @@ CS50 final project
 
 design
 
+To run the program from commandline, an if __name__ == "__main__" statement is
+used.  In this statement, the ArgumentParser module is used to create a
+-h --help message and check for valid flags.  To see the help message, run
+python lightclock.py -h
+or
+python lightclock.py --help
+
 When using the -a --address argument flag, python uses the GoogleV3 geocoder
 from the geopy module to determine the coordinates of the location you entered.
 There is a check to make sure what you entered is the desired location, since
@@ -24,7 +31,7 @@ from the time module, and converts it into a list. If the -t flag is given, it
 replaces the hour and minute indeces in this list.  If the -d flag is given, it
 replaces the month, day, year, weekday, year-day, and DST indeces in this list.
 Finally, it finds the difference between this time/date list and the system
-clock so that it can update every minute later.  The time/date needs to be set 
+clock so that it can update every minute later.  The time/date needs to be set
 to UTC time (much like GMT), because ephem (explained more later) does not take
 the time zone of its coordinate into account.
 
@@ -55,11 +62,11 @@ cycle of ((18 - altitude)/altitude)*100 percent.
 
 Since the loop updates each minute, there may not be a significant change in
 the sun's altitude. If there is not a full integer difference from the last loop
-(remember, the altitude is rounded down to the next lowest int), then the 
+(remember, the altitude is rounded down to the next lowest int), then the
 program doesn't even enter the function that controls the PWM pin to save a
 little bit of processing power.
 
-The loop will continue indefinitely until the raspberry pi's power is removed, 
-or until a keyboard interrup is entered (ctrl + c).  If a keyboard interupt is 
-detected, the program cleanly exits by stopping the pin and cleaning up the 
+The loop will continue indefinitely until the raspberry pi's power is removed,
+or until a keyboard interrup is entered (ctrl + c).  If a keyboard interupt is
+detected, the program cleanly exits by stopping the pin and cleaning up the
 GPIO.

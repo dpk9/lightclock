@@ -126,6 +126,8 @@ def main(address, coords=None, time_var=None, date=None):
         print("KeyboardInterrupt")
         PWM_pin.stop()
         GPIO.cleanup()
+        print "Exiting cleanly"
+        return
 
     except:
         raise

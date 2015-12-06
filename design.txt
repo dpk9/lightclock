@@ -1,0 +1,65 @@
+David Kalish
+CS50 final project
+
+design
+
+When using the -a --address argument flag, python uses the GoogleV3 geocoder
+from the geopy module to determine the coordinates of the location you entered.
+There is a check to make sure what you entered is the desired location, since
+it's basically a search string that could return multiple values (e.g.
+Cambridge, MA or Cambridge England)
+
+When using -c --coords, it just checks to see if they're valid coordinates, then
+continues.
+
+When using the -t --time flag, it checks that it is a valid format for a time
+(HH:MM only). It defaults to the current system time if this flag is omitted.
+
+When using the -d --date flag, it checks that it is a valid format for a date
+(MM/DD/YYYY only). It defaults to the current system date if this flag is
+omitted.
+
+The program implements the time and date flags by getting the localtime struct
+from the time module, and converts it into a list. If the -t flag is given, it
+replaces the hour and minute indeces in this list.  If the -d flag is given, it
+replaces the month, day, year, weekday, year-day, and DST indeces in this list.
+Finally, it finds the difference between this time/date list and the system
+clock so that it can update every minute later.  The time/date needs to be set 
+to UTC time (much like GMT), because ephem (explained more later) does not take
+the time zone of its coordinate into account.
+
+After managing the time/date, it uses the PyEphem module to calculate the sun's
+altitude relative to the location chosen.  Ephem first needs an "observer"
+object, which needs to be initialized with lat/lon coordinates, date, and time
+to determine where and when to calculate things.  Next, I create a "sun" object,
+which is what will be tracked to determine how bright to make the lights.
+
+Once the ephem objects are created, inter an infinite loop that repeats every
+minute (depending on the magic variable TIMER).  The loop does not drift,
+because it checks for 60 seconds to pass from start of each loop, rather than
+just sleeping for 60 seconds at the end of each loop.  Each iteration through
+the loop updates the date/time values of the ephem observer.  The sun object
+computes the sun's position in relation to the observer object, from which we
+get the altitude.
+
+The altitude, in degrees, is rounded down to an int.  If the altitude is 0 or
+higher, the sun is in the sky. The Raspberry Pi sets its PWM pin to 100%, for
+maximum lighting.
+
+If the altitude is -18 or lower (or -12 or -6, depending on the magic variable
+TWILIGHT_ALT), the sun is fully set.  The PWM is set to 0%, so the lights turn
+off.
+
+If the altitude of the sun is between 0 and -18, then the PWM will have a duty
+cycle of ((18 - altitude)/altitude)*100 percent.
+
+Since the loop updates each minute, there may not be a significant change in
+the sun's altitude. If there is not a full integer difference from the last loop
+(remember, the altitude is rounded down to the next lowest int), then the 
+program doesn't even enter the function that controls the PWM pin to save a
+little bit of processing power.
+
+The loop will continue indefinitely until the raspberry pi's power is removed, 
+or until a keyboard interrup is entered (ctrl + c).  If a keyboard interupt is 
+detected, the program cleanly exits by stopping the pin and cleaning up the 
+GPIO.

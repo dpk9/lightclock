@@ -119,29 +119,6 @@ def main(address, coords=None, time_var=None, date=None):
             # update the prev_altitude
             prev_altitude = altitude
 
-            # # calculate the next sunrise
-            # next_sunrise_utc = str(observer.next_rising(sun))
-            # next_sunrise_utc = datetime.datetime.strptime(next_sunrise_utc,
-            #                                               "%Y/%m/%d %H:%M:%S")
-            # next_sunrise_local  = utcToLocal(next_sunrise_utc, tz)
-
-            # # calculate the next sunset
-            # next_sunset_utc = str(observer.next_setting(sun))
-            # next_sunset_utc = datetime.datetime.strptime(next_sunset_utc,
-            #                                               "%Y/%m/%d %H:%M:%S")
-            # next_sunset_local = utcToLocal(next_sunset_utc, tz)
-
-            # # find out if sunset or sunrise is sooner
-            # if next_sunrise_local < next_sunset_local:
-            #     # next event is sunrise
-            #     print "sunrise next"
-            #     print next_sunrise_utc
-
-            # else:
-            #     # next event is sunset
-            #     print "sunset next"
-            #     print next_sunset_utc
-
             # sleep the rest of the 60 seconds
             time.sleep(TIMER - ((time.time() - tick) % TIMER))
 

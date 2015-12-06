@@ -1,0 +1,28 @@
+David Kalish
+CS50 final project
+
+documentation
+
+The Python program lightclock.py controls a Raspberry Pi's GPIO to control an
+LED light strip to simulate the sunlight patterns of anywhere in the world.
+
+Usage:
+
+python lightclock.py (-a address "STRING" | -c coords INT INT) [-t time HH:MM]
+    [-d date MM/DD/YYYY]
+
+-a --address        Enter an address city, state, country, etc that you want to
+                    simulate. If there is a space, you must use quotation marks.
+
+-c --coords         Enter a pair of numbers (LAT LON) to simulate. Should be two
+                    floats separated by a space.
+
+-t --time           Enter a starting time to begin simulating. If omitted,
+                    default to the current time.
+
+-d --date           Enter a starting date to begin simulating. If omitted,
+                    default to current date.
+
+
+Plug an LED lightstrip into GPIO 21 and ground.  Run the program. Watch the
+lights dim on and off throughout a day.

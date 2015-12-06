@@ -23,19 +23,24 @@ python lightclock.py --help
 
 Usage:
 
-python lightclock.py (-a address "STRING" | -c coords INT INT) [-t time HH:MM]
-    [-d date MM/DD/YYYY]
+python  lightclock.py [-h] (-a ADDRESS | -c LAT LON) [-t TIME] [-d DATE]
 
--a --address        Enter an address city, state, country, etc that you want to
+-h, --help          Show help message
+
+-a ADDRESS, --address ADDRESS
+                    Enter an address city, state, country, etc that you want to
                     simulate. If there is a space, you must use quotation marks.
 
--c --coords         Enter a pair of numbers (LAT LON) to simulate. Should be two
+-c LAT LON, --coords LAT LON
+                    Enter a pair of numbers (LAT LON) to simulate. Should be two
                     floats separated by a space.
 
--t --time           Enter a starting time to begin simulating. If omitted,
+-t TIME, --time TIME
+                    Enter a starting time to begin simulating. If omitted,
                     default to the current time.
 
--d --date           Enter a starting date to begin simulating. If omitted,
+-d DATE, --date DATE
+                    Enter a starting date to begin simulating. If omitted,
                     default to current date.
 
 

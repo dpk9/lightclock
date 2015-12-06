@@ -1,6 +1,6 @@
 DateTime==4.0.1
 decorator==4.0.4
-ephem==3.7.6.0
+pyephem==3.7.6.0
 geopy==1.11.0
 ipython==4.0.1
 ipython-genutils==0.1.0

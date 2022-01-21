@@ -2,7 +2,7 @@ DateTime==4.0.1
 decorator==4.0.4
 pyephem==3.7.6.0
 geopy==1.11.0
-ipython==4.0.1
+ipython>=5.11
 ipython-genutils==0.1.0
 path.py==8.1.2
 pickleshare==0.5

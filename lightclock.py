@@ -65,7 +65,7 @@ def main(address, coords=None, time_var=None, date=None):
         start_tad = time_and_date
         # get the offset from target time to current time
         tad_offset = time.time() - time.mktime(start_tad)
-        print "time diff {}".format(tad_offset)
+        print("time diff {}".format(tad_offset))
 
         # Make an observer object for ephem at given location and date/time
         observer = ephem.Observer()
@@ -80,25 +80,25 @@ def main(address, coords=None, time_var=None, date=None):
         while True:
             # for the timer
             tick = time.time()
-            print "tick {}".format(tick)
+            print("tick {}".format(tick))
 
             # calc the new time and date
             tad = list(time.localtime(time.time() - tad_offset))
             tad = datetime.datetime(tad[0], tad[1], tad[2], tad[3], tad[4], tad[5])
             # convert the time_and_date from localized timezone time to UTC time
             utc_tad = localToUtc(tad, tz)
-            print "utc_tad {}".format(utc_tad)
+            print("utc_tad {}".format(utc_tad))
 
             # update the observer's tad
             observer.date = utc_tad.strftime("%Y/%m/%d %H:%M:%S")
-            print observer
+            print(observer)
 
             # observe the sun
             sun.compute(observer)
 
             # calculate sun altitude in degrees
             altitude = int(math.degrees(sun.alt))
-            print "altitude {}".format(altitude)
+            print("altitude {}".format(altitude))
 
             # sunlight adjustment time!
             # see if light is above the horizon (full daylight)
@@ -126,7 +126,7 @@ def main(address, coords=None, time_var=None, date=None):
         print("KeyboardInterrupt")
         PWM_pin.stop()
         GPIO.cleanup()
-        print "Exiting cleanly"
+        print("Exiting cleanly")
         return
 
     except:
@@ -160,7 +160,7 @@ def lightControl(pin, altitude):
     elif duty_cycle == 100:
         duty_cycle = 99.9
 
-    print "duty_cycle = {}".format(duty_cycle)
+    print("duty_cycle = {}".format(duty_cycle))
 
     # set the duty cycle
     pin.ChangeDutyCycle(duty_cycle)
@@ -222,7 +222,7 @@ def setLocation(city=None, lat_lon=None):
         city_long, lat_lon = geolocator.geocode(city)
         while True:
             # Ask if we have interpreted the correct city
-            confirm_city = raw_input('Is your city "{}"? [y or n] '
+            confirm_city = input('Is your city "{}"? [y or n] '
                                      ''.format(city_long))
             if confirm_city.lower().strip() in YES_LIST:
                 lat, lon = lat_lon
@@ -275,7 +275,7 @@ if __name__ == "__main__":
     time_var = args.time
     date = args.date
 
-    print args
+    print(args)
 
     main(address=address, coords=coords, time_var=time_var, date=date)
 # end if __name__ == "__main__"
